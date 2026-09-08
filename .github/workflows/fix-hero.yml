@@ -1,0 +1,61 @@
+name: Fix landing page hero image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-hero.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Repair hero image and mobile layout
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          # Reuse the already-working header icon data URI so the hero cannot point
+          # to a missing external asset.
+          m = re.search(r'<img\s+src="(data:image/(?:jpeg|jpg|png);base64,[A-Za-z0-9+/=]+)"', s)
+          if not m:
+              raise SystemExit('No embedded header image found')
+          uri = m.group(1)
+
+          hero = f'<div class="appcard"><img src="{uri}" alt="AI曲芸師カメラ アプリイメージ"></div><div class="float f1">'
+          s2, n = re.subn(
+              r'<div class="appcard"[^>]*>.*?</div><div class="float f1">',
+              hero,
+              s,
+              count=1,
+              flags=re.S,
+          )
+          if n != 1:
+              raise SystemExit(f'Hero block replacement failed: {n}')
+
+          patch = '''\n/* mobile hero QA fix 2026-09-08 */\n.appcard img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;border-radius:27px;box-shadow:0 14px 38px rgba(12,83,158,.2)}\n@media(max-width:560px){.hero-art{margin-top:12px;width:100%}.appcard{min-height:0!important;transform:none!important;padding:13px!important}.appcard img{width:100%!important;height:auto!important;border-radius:18px}.f1{left:4px!important;top:4%!important}.f2{right:4px!important;bottom:4%!important}}\n'''
+          if 'mobile hero QA fix 2026-09-08' not in s2:
+              s2 = s2.replace('</style>', patch + '</style>', 1)
+
+          p.write_text(s2, encoding='utf-8')
+          PY
+      - name: Commit repaired landing page
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "fix: restore AI Kyokugeishi hero image on mobile"
+            git push
+          fi
