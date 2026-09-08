@@ -1,0 +1,44 @@
+name: Repair landing assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore original hero and favicon
+        run: |
+          mkdir -p assets
+          git show a002d601ab728975c5ec7b23305f56276a4e97af:file_00000000f1a4820ba40755cc988d43d8.png > assets/ai-kyokugeishi-camera.png
+          cp assets/ai-kyokugeishi-camera.png assets/favicon.png
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('assets/ai-kyokugeishi-camera.webp','./assets/ai-kyokugeishi-camera.png?v=20260908-2')
+          if '<link rel="icon"' not in s:
+              s=s.replace('<meta name="theme-color" content="#0b7cff" />', '<meta name="theme-color" content="#0b7cff" />\n<link rel="icon" type="image/png" href="./assets/favicon.png?v=20260908-2" />\n<link rel="apple-touch-icon" href="./assets/favicon.png?v=20260908-2" />')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit fixes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html assets/ai-kyokugeishi-camera.png assets/favicon.png
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "fix: restore hero image and favicon assets"
+            git push
+          fi
