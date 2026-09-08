@@ -20,15 +20,20 @@ jobs:
       - name: Restore original hero and favicon
         run: |
           mkdir -p assets
-          git show a002d601ab728975c5ec7b23305f56276a4e97af:file_00000000f1a4820ba40755cc988d43d8.png > assets/ai-kyokugeishi-camera.png
+          git show aef9a00565bf389f08ecb095673225c68b58f391:file_00000000f1a4820ba40755cc988d43d8.png > assets/ai-kyokugeishi-camera.png
           cp assets/ai-kyokugeishi-camera.png assets/favicon.png
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          s=s.replace('assets/ai-kyokugeishi-camera.webp','./assets/ai-kyokugeishi-camera.png?v=20260908-2')
+          s=s.replace('assets/ai-kyokugeishi-camera.webp','./assets/ai-kyokugeishi-camera.png?v=20260908-3')
+          s=s.replace('./assets/ai-kyokugeishi-camera.png?v=20260908-2','./assets/ai-kyokugeishi-camera.png?v=20260908-3')
           if '<link rel="icon"' not in s:
-              s=s.replace('<meta name="theme-color" content="#0b7cff" />', '<meta name="theme-color" content="#0b7cff" />\n<link rel="icon" type="image/png" href="./assets/favicon.png?v=20260908-2" />\n<link rel="apple-touch-icon" href="./assets/favicon.png?v=20260908-2" />')
+              s=s.replace('<meta name="theme-color" content="#0b7cff" />', '<meta name="theme-color" content="#0b7cff" />\n<link rel="icon" type="image/png" href="./assets/favicon.png?v=20260908-3" />\n<link rel="apple-touch-icon" href="./assets/favicon.png?v=20260908-3" />')
+          else:
+              import re
+              s=re.sub(r'<link rel="icon"[^>]*>', '<link rel="icon" type="image/png" href="./assets/favicon.png?v=20260908-3" />', s)
+              s=re.sub(r'<link rel="apple-touch-icon"[^>]*>', '<link rel="apple-touch-icon" href="./assets/favicon.png?v=20260908-3" />', s)
           p.write_text(s,encoding='utf-8')
           PY
       - name: Commit fixes
